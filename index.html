@@ -435,10 +435,10 @@
       printBtn.textContent = '印刷処理中...';
 
       try {
-        // フロントエンド側で瞬時にQRコードをレンダリングして画像化
+        // 解像度を保つために生成サイズも 320 に引き上げ
         const qr = new QRious({
           value: item.url,
-          size: 160,
+          size: 320,
           level: 'M'
         });
         const base64Img = qr.toDataURL();
@@ -454,7 +454,7 @@
           })
           .catch(e => console.error('GAS API通信エラー:', e));
         
-        // 3. 画面UIの更新 (未発行から発行済みへカードを移動)
+        // 3. 画面UI of更新 (未発行から発行済みへカードを移動)
         printBtn.textContent = '再印刷する';
         printBtn.disabled = false;
         document.getElementById('printedList').prepend(cardDiv);
@@ -478,11 +478,12 @@
     async function executePrintProcess(item, base64Img = null) {
       const canvas = document.getElementById('receiptCanvas');
       const ctx = canvas.getContext('2d');
-      const width = 384; // 58mmレシート幅想定
+      const width = 384; // 58mmの完全用紙ドット幅 (実印刷幅)
       const padding = 20;
       
+      // QRコードサイズを320にしたのに伴い、全体の高さを450から620へ拡張
       canvas.width = width;
-      canvas.height = 450; 
+      canvas.height = 620; 
 
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, width, canvas.height);
@@ -517,12 +518,13 @@
       ctx.fillText(`送信日時： ${ts}`, padding, currentY);
       currentY += 40;
 
-      // QRコードの描画
+      // QRコードの描画 (サイズを縦横160pxから「320px」へ拡張)
       await new Promise((resolve) => {
         if (base64Img) {
           const img = new Image();
           img.onload = () => {
-            const qrSize = 160;
+            const qrSize = 320;
+            // 384px幅の中央に配置 (左右余白 32px)
             ctx.drawImage(img, (width - qrSize) / 2, currentY, qrSize, qrSize);
             currentY += qrSize + 20;
             resolve();
@@ -530,8 +532,8 @@
           img.src = base64Img;
         } else {
           ctx.textAlign = 'center';
-          ctx.fillText('【QRコード表示エリア】', width/2, currentY + 50);
-          currentY += 160 + 20;
+          ctx.fillText('【QRコード表示エリア】', width/2, currentY + 100);
+          currentY += 320 + 20;
           resolve();
         }
       });
