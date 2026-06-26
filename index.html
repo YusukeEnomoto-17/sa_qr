@@ -490,10 +490,11 @@
       printBtn.textContent = '印刷処理中...';
 
       try {
-        // フロントエンド側で瞬時にQRコードをレンダリングして画像化
+        // QR解像度を保ち、58mm用紙幅（実印刷幅384px）の中にバランス良く収まるよう
+        // サイズを「340px」（余白左右22pxずつ）に微調整
         const qr = new QRious({
           value: item.url,
-          size: 320,
+          size: 340,
           level: 'M'
         });
         const base64Img = qr.toDataURL();
@@ -543,69 +544,85 @@
     async function executePrintProcess(item, base64Img = null) {
       const canvas = document.getElementById('receiptCanvas');
       const ctx = canvas.getContext('2d');
-      const width = 384; // 58mmの完全用紙ドット幅
-      const padding = 20;
       
-      canvas.width = width;
+      // ★58mm用紙見切れ防止の重要調整★
+      // プリンターのデバイス全体が認識する総ドット幅（80mm仕様に準拠する）
+      const printerWidth = 576; 
+      // 実際に使用している58mmロール紙の実印刷幅ドット
+      const paperWidth = 384; 
+      // 58mm用紙を物理的に中央にセットしているため、描画開始点を右にずらすオフセット
+      const offsetX = (printerWidth - paperWidth) / 2; // = 96
+      
+      const padding = 20; // 58mm用紙端からの内側マージン
+      
+      // 印刷用キャンバス全体は576px幅で送信する
+      canvas.width = printerWidth;
       canvas.height = 620; 
 
+      // 印刷可能領域全体を一度白（何もない状態）にする
       ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, width, canvas.height);
+      ctx.fillRect(0, 0, printerWidth, canvas.height);
 
       ctx.fillStyle = 'black';
       ctx.textBaseline = 'top';
 
-      // ヘッダー
+      // --- 描画処理：すべて offsetX (96px) を加算して、58mm用紙幅（中央）へ描画 ---
+
+      // ヘッダー (中央揃え)
       ctx.font = 'bold 30px "Noto Sans JP", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('研究データ', width / 2, 20);
+      // 用紙中央（offsetX + 用紙幅の半分）
+      ctx.fillText('研究データ', offsetX + (paperWidth / 2), 20);
 
+      // 区切り線
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(padding, 65);
-      ctx.lineTo(width - padding, 65);
+      ctx.moveTo(offsetX + padding, 65);
+      ctx.lineTo(offsetX + paperWidth - padding, 65);
       ctx.stroke();
 
-      // 情報テキスト
+      // 情報テキスト (左揃え)
       ctx.font = '20px "Noto Sans JP", sans-serif';
       ctx.textAlign = 'left';
       let currentY = 80;
       
-      ctx.fillText(`送信者： ${item.sender}`, padding, currentY);
+      ctx.fillText(`送信者： ${item.sender}`, offsetX + padding, currentY);
       currentY += 35;
       
       const shortTitle = item.title.length > 15 ? item.title.substring(0, 15) + '...' : item.title;
-      ctx.fillText(`タイトル： ${shortTitle}`, padding, currentY);
+      ctx.fillText(`タイトル： ${shortTitle}`, offsetX + padding, currentY);
       currentY += 35;
 
       const ts = item.timestamp.length >= 16 ? item.timestamp.substring(0, 16) : item.timestamp;
-      ctx.fillText(`送信日時： ${ts}`, padding, currentY);
+      ctx.fillText(`送信日時： ${ts}`, offsetX + padding, currentY);
       currentY += 40;
 
-      // QRコードの描画
+      // QRコードの描画 (58mm幅 384px にベストフィットする 340px サイズで大きく描画)
       await new Promise((resolve) => {
         if (base64Img) {
           const img = new Image();
           img.onload = () => {
-            const qrSize = 320;
-            ctx.drawImage(img, (width - qrSize) / 2, currentY, qrSize, qrSize);
+            const qrSize = 340;
+            // 58mm用紙エリアの中央にQRを配置
+            const qrX = offsetX + (paperWidth - qrSize) / 2;
+            ctx.drawImage(img, qrX, currentY, qrSize, qrSize);
             currentY += qrSize + 20;
             resolve();
           };
           img.src = base64Img;
         } else {
           ctx.textAlign = 'center';
-          ctx.fillText('【QRコード表示エリア】', width/2, currentY + 100);
-          currentY += 320 + 20;
+          ctx.fillText('【QRコード表示エリア】', offsetX + (paperWidth / 2), currentY + 100);
+          currentY += 340 + 20;
           resolve();
         }
       });
 
-      // フッター（のり厳禁の文言）
+      // フッター（注意事項も58mm用紙中央にセンタリング）
       ctx.font = '16px "Noto Sans JP", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('※ノートにはセロテープで', width / 2, currentY);
-      ctx.fillText('　貼り付けてください（液体のり厳禁）', width / 2, currentY + 25);
+      ctx.fillText('※ノートにはセロテープで', offsetX + (paperWidth / 2), currentY);
+      ctx.fillText('　貼り付けてください（液体のり厳禁）', offsetX + (paperWidth / 2), currentY + 25);
 
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       await sendRasterDataToPrinter(imageData);
