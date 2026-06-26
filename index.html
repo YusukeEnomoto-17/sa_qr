@@ -523,13 +523,19 @@
         loadData();
       }
 
-      // 3. プリンタ自動接続チェック
+      // 3. プリンタ自動接続チェック (過去のペアリング履歴の有無を検査)
       if (navigator.usb) {
         try {
           const devices = await navigator.usb.getDevices();
           const targetDevice = devices.find(d => d.vendorId === SII_VENDOR_ID);
           if (targetDevice) {
-            await setupPrinter(targetDevice);
+            // ★重要：自動検出時はオープンセッションを開かず、情報を登録するだけにする
+            usbPrinterDevice = targetDevice;
+            const btn = document.getElementById('printerBtn');
+            btn.textContent = '✅ プリンタ接続済み';
+            btn.className = 'btn-connected';
+            document.getElementById('testPrintBtn').disabled = false;
+            console.log('ペアリング履歴からプリンターを自動割り当てしました:', targetDevice.productName);
           }
         } catch (e) {
           console.log('プリンタ自動確認エラー:', e);
@@ -683,27 +689,19 @@
         const selectedDevice = await navigator.usb.requestDevice({
           filters: [{ vendorId: SII_VENDOR_ID }]
         });
-        await setupPrinter(selectedDevice);
-        alert('プリンタとの接続が完了しました。');
+        
+        // ★重要：ペアリング完了時、通信オープンテストはせずそのまま変数に代入するだけにする
+        usbPrinterDevice = selectedDevice;
+        const btn = document.getElementById('printerBtn');
+        btn.textContent = '✅ プリンタ接続済み';
+        btn.className = 'btn-connected';
+        document.getElementById('testPrintBtn').disabled = false;
+        
+        alert('プリンタとのペアリングが完了しました。');
       } catch (error) {
         console.error('プリンタ接続エラー:', error);
         alert('プリンタの接続がキャンセルされたか、エラーが発生しました。\n' + error.message);
       }
-    }
-
-    async function setupPrinter(device) {
-      usbPrinterDevice = device;
-      await usbPrinterDevice.open();
-      if (usbPrinterDevice.configuration === null) {
-        await usbPrinterDevice.selectConfiguration(1);
-      }
-      await usbPrinterDevice.claimInterface(0);
-      await usbPrinterDevice.close();
-      
-      const btn = document.getElementById('printerBtn');
-      btn.textContent = '✅ プリンタ接続済み';
-      btn.className = 'btn-connected';
-      document.getElementById('testPrintBtn').disabled = false;
     }
 
     async function testPrint() {
@@ -721,11 +719,11 @@
 
     async function printReceipt(id) {
       if (!usbPrinterDevice) {
-        alert('先に「プリンタ未接続」ボタンを押して、プリンタとペアリングしてください。');
+        alert('先に「プリンタ未接続」ボタンを押して、プリンタを接続してください。');
         return;
       }
 
-      const item = unprintedDataCache.find(d => d.id === id);
+      const item = rawDataCache.find(d => d.id === id);
       if (!item) return;
 
       const cardDiv = document.getElementById(`card-${id}`);
@@ -866,6 +864,7 @@
     async function sendRasterDataToPrinter(imageData) {
       if (!usbPrinterDevice) throw new Error('プリンタがペアリングされていません');
       
+      // 印刷する瞬間にのみ接続を開く
       await usbPrinterDevice.open();
       if (usbPrinterDevice.configuration === null) {
         await usbPrinterDevice.selectConfiguration(1);
@@ -885,6 +884,7 @@
       const endpointNumber = 1; 
       await usbPrinterDevice.transferOut(endpointNumber, printData);
       
+      // 送信完了後、即座にクローズしてポートを完全に解放する
       await usbPrinterDevice.close();
     }
 
