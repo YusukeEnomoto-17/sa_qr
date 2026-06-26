@@ -28,63 +28,6 @@
       background-color: var(--bg);
       color: var(--text);
     }
-    
-    /* パスコード認証画面のスタイル */
-    #auth-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background-color: var(--primary);
-      z-index: 9999;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    .auth-box {
-      background: white;
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      text-align: center;
-      max-width: 400px;
-      width: 90%;
-    }
-    .auth-box h2 {
-      margin-top: 0;
-      color: var(--primary);
-      font-size: 22px;
-    }
-    .auth-box p {
-      color: var(--text-light);
-      font-size: 14px;
-      margin-bottom: 25px;
-    }
-    .auth-input {
-      width: 100%;
-      padding: 12px;
-      font-size: 18px;
-      border: 2px solid #ddd;
-      border-radius: 6px;
-      text-align: center;
-      box-sizing: border-box;
-      margin-bottom: 20px;
-      letter-spacing: 4px;
-    }
-    .auth-input:focus {
-      border-color: var(--accent);
-      outline: none;
-    }
-    .btn-auth {
-      background-color: var(--accent);
-      color: white;
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
     /* ヘッダー */
     header {
       background-color: var(--primary);
@@ -95,25 +38,9 @@
       align-items: center;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    .header-logo {
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-    }
     header h1 {
       margin: 0;
       font-size: 24px;
-    }
-    .version-container {
-      font-size: 12px;
-      color: #bdc3c7;
-      background-color: rgba(255, 255, 255, 0.1);
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-family: monospace;
-    }
-    .version-container span {
-      font-weight: bold;
     }
     .controls {
       display: flex;
@@ -205,50 +132,11 @@
       align-items: center;
     }
 
-    /* 検索ボックスとフィルタータブの配置 */
-    .list-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 20px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-
-    /* 検索バー */
-    .search-container {
-      flex: 1;
-      min-width: 250px;
-      max-width: 400px;
-      position: relative;
-    }
-    .search-input {
-      width: 100%;
-      padding: 10px 15px;
-      padding-left: 35px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 20px;
-      box-sizing: border-box;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .search-input:focus {
-      border-color: var(--accent);
-    }
-    .search-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-light);
-      font-size: 14px;
-    }
-
     /* フィルタータブのスタイル */
     .filter-tabs {
       display: flex;
       gap: 10px;
+      margin-bottom: 20px;
     }
     .tab-btn {
       padding: 8px 18px;
@@ -359,25 +247,8 @@
 </head>
 <body>
 
-  <!-- =========================================
-       🔐 簡易パスコード認証画面
-       ========================================= -->
-  <div id="auth-overlay">
-    <div class="auth-box">
-      <h2>🔑 システム認証</h2>
-      <p>このシステムは昭和学院関係者専用です。<br>指定のパスコードを入力してください。</p>
-      <input type="password" id="passcode-field" class="auth-input" placeholder="パスコード" maxlength="12">
-      <button class="btn-auth" onclick="verifyPasscode()">ロック解除</button>
-    </div>
-  </div>
-
   <header>
-    <div class="header-logo">
-      <h1>研究データ QRレシート発行</h1>
-      <div class="version-container">
-        App: <span>1.1</span> | API: <span id="api-version">未ログイン</span>
-      </div>
-    </div>
+    <h1>研究データ QRレシート発行</h1>
     <div class="controls">
       <button id="printerBtn" class="btn-disconnected" onclick="connectPrinter()">⚠️ プリンタ未接続</button>
       <button id="testPrintBtn" class="btn-test" onclick="testPrint()" disabled>テスト印刷</button>
@@ -405,19 +276,11 @@
         <span id="dataCount" style="font-size:16px; font-weight:normal; color:#7f8c8d;">(0件)</span>
       </h2>
 
-      <!-- リスト制御エリア（検索 ＆ タブ） -->
-      <div class="list-controls">
-        <!-- 検索バー -->
-        <div class="search-container">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="search-box" class="search-input" placeholder="送信者名、またはタイトルで絞り込み..." oninput="onSearchInput()">
-        </div>
-
-        <!-- フィルター用タブ（デフォルト「未発行のみ」） -->
-        <div class="filter-tabs">
-          <button id="tab-unprinted" class="tab-btn active" onclick="filterList('unprinted')">未発行のみ</button>
-          <button id="tab-printed" class="tab-btn" onclick="filterList('printed')">発行済みのみ</button>
-        </div>
+      <!-- フィルター用タブ -->
+      <div class="filter-tabs">
+        <button id="tab-all" class="tab-btn active" onclick="filterList('all')">すべて</button>
+        <button id="tab-unprinted" class="tab-btn" onclick="filterList('unprinted')">未発行のみ</button>
+        <button id="tab-printed" class="tab-btn" onclick="filterList('printed')">発行済みのみ</button>
       </div>
 
       <div id="receiptListContainer" class="card-grid">
@@ -431,13 +294,10 @@
 
   <script>
     // ==========================================
-    // ⚙️ システム設定 ＆ セキュリティ設定
+    // ⚙️ システム設定
     // ==========================================
     
-    // 現在のフロントエンド自体のバージョン
-    const APP_VERSION = "1.1";
-
-    // デプロイしたGASの「ウェブアプリURL」
+    // 【重要】デプロイしたGASの「ウェブアプリURL」
     const GAS_API_URL = "https://script.google.com/a/macros/jsshowa.jp/s/AKfycbyZCDUkxZttZxGTVZMPiG3Lwk3ml7ghanIMUe-f8tziLo3ss3Su_N5430GYvbUWuiTjsA/exec";
 
     // 対象のGoogleフォームのURL
@@ -448,66 +308,10 @@
 
     let usbPrinterDevice = null;
     let rawDataCache = []; // GASから受信した全データ
-    let currentFilter = 'unprinted'; // デフォルト「未発行」
+    let currentFilter = 'all'; // 現在選択されているタブ
 
-    // --- パスコード認証処理 ---
-    
-    document.addEventListener('DOMContentLoaded', () => {
-      // 認証状態の確認 (ローカルに保存されたパスコードの存在確認)
-      const savedPasscode = localStorage.getItem('receipt_system_passcode');
-      if (savedPasscode) {
-        document.getElementById('auth-overlay').style.display = 'none';
-        initApp(savedPasscode);
-      } else {
-        // パスコード入力欄でEnterを押した時にも実行
-        document.getElementById('passcode-field').addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') verifyPasscode();
-        });
-      }
-    });
-
-    // 画面上でロック解除ボタンが押された時の処理
-    async function verifyPasscode() {
-      const field = document.getElementById('passcode-field');
-      const input = field.value.trim();
-      
-      if (!input) {
-        alert('パスコードを入力してください。');
-        return;
-      }
-
-      // 入力されたパスコードで実際にGAS APIへテスト通信を試みる
-      document.getElementById('receiptListContainer').innerHTML = '<div class="loader">認証中...</div>';
-      
-      try {
-        const response = await fetch(`${GAS_API_URL}?action=getUnprinted&passcode=${encodeURIComponent(input)}`);
-        if (!response.ok) throw new Error('通信エラーが発生しました');
-        const resData = await response.json();
-        
-        // GAS側で認証に失敗した場合
-        if (resData && resData.status === "error" && resData.auth === false) {
-          alert('パスコードが正しくありません。');
-          field.value = '';
-          field.focus();
-          return;
-        }
-
-        // 認証成功時、パスコードをブラウザに安全に保存
-        localStorage.setItem('receipt_system_passcode', input);
-        document.getElementById('auth-overlay').style.display = 'none';
-        
-        // アプリケーションを初期起動
-        initApp(input, resData);
-
-      } catch (err) {
-        console.error(err);
-        alert('サーバーとの通信に失敗しました。時間をおいて再試行してください。\n' + err.message);
-      }
-    }
-
-    // --- アプリの初期化 ---
-
-    async function initApp(passcode, initialData = null) {
+    // --- 初期化 ---
+    document.addEventListener('DOMContentLoaded', async () => {
       // 1. フォームへのQRコードを描画
       new QRious({
         element: document.getElementById('formQrCanvas'),
@@ -516,124 +320,67 @@
         level: 'H'
       });
 
-      // 2. データの初期展開、または新規取得
-      if (initialData) {
-        processLoadedData(initialData);
-      } else {
-        loadData();
-      }
+      // 2. データの読み込み
+      loadData();
 
-      // 3. プリンタ自動接続チェック (過去のペアリング履歴の有無を検査)
+      // 3. プリンタ自動接続チェック (ブラウザに記憶されたペアリング履歴から自動接続)
       if (navigator.usb) {
         try {
           const devices = await navigator.usb.getDevices();
           const targetDevice = devices.find(d => d.vendorId === SII_VENDOR_ID);
           if (targetDevice) {
-            // ★重要：自動検出時はオープンセッションを開かず、情報を登録するだけにする
-            usbPrinterDevice = targetDevice;
-            const btn = document.getElementById('printerBtn');
-            btn.textContent = '✅ プリンタ接続済み';
-            btn.className = 'btn-connected';
-            document.getElementById('testPrintBtn').disabled = false;
-            console.log('ペアリング履歴からプリンターを自動割り当てしました:', targetDevice.productName);
+            await setupPrinter(targetDevice);
           }
         } catch (e) {
           console.log('プリンタ自動確認エラー:', e);
         }
       }
-    }
+    });
 
     // --- データ取得・同期処理 (GAS API連携) ---
 
     async function loadData() {
       const container = document.getElementById('receiptListContainer');
-      const apiVerLabel = document.getElementById('api-version');
       container.innerHTML = '<div class="loader">データを読み込み中...</div>';
       
-      const savedPasscode = localStorage.getItem('receipt_system_passcode');
-      if (!savedPasscode) {
-        // 万が一ログイン情報が消えていた場合は再認証画面へ
-        localStorage.removeItem('receipt_system_passcode');
-        location.reload();
-        return;
-      }
-      
       try {
-        const response = await fetch(`${GAS_API_URL}?action=getUnprinted&passcode=${encodeURIComponent(savedPasscode)}`);
+        const response = await fetch(`${GAS_API_URL}?action=getUnprinted`);
         if (!response.ok) throw new Error('サーバーエラーが発生しました');
-        const resData = await response.json();
+        const data = await response.json();
         
-        // サーバー側で認証が期限切れ、または変更されていた場合
-        if (resData && resData.status === "error" && resData.auth === false) {
-          alert('セッションが切れました。再度パスコードを入力してください。');
-          localStorage.removeItem('receipt_system_passcode');
-          location.reload();
-          return;
-        }
-
-        if (resData && resData.status === "error") {
-          throw new Error(resData.message);
+        if (data && data.status === "error") {
+          throw new Error(data.message);
         }
         
-        processLoadedData(resData);
+        rawDataCache = data;
+        applyFilterAndRender();
       } catch (err) {
         container.innerHTML = `<div class="loader" style="color:red;">エラー: データの取得に失敗しました。<br>${err.message}</div>`;
-        apiVerLabel.textContent = "エラー";
       }
-    }
-
-    // APIから正常に受信したデータを展開する共通処理
-    function processLoadedData(resData) {
-      const apiVerLabel = document.getElementById('api-version');
-      
-      if (resData.version) {
-        apiVerLabel.textContent = resData.version;
-        if (resData.version !== APP_VERSION) {
-          console.warn(`[⚠️バージョン不一致] App: ${APP_VERSION} / API: ${resData.version}.`);
-        }
-      } else {
-        apiVerLabel.textContent = "なし";
-      }
-      
-      rawDataCache = resData.data;
-      applyFilterAndRender();
     }
 
     // タブの切り替え
     function filterList(filterType) {
       currentFilter = filterType;
       
+      // ボタンの活性クラス切り替え
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.getElementById(`tab-${filterType}`).classList.add('active');
       
       applyFilterAndRender();
     }
 
-    // 検索ボックスの入力イベント
-    function onSearchInput() {
-      applyFilterAndRender();
-    }
-
-    // フィルター ＆ 検索条件を適用して描画
+    // フィルタを適用して描画
     function applyFilterAndRender() {
       const container = document.getElementById('receiptListContainer');
-      const searchQuery = document.getElementById('search-box').value.toLowerCase().trim();
-      
-      // 1. タブフィルターの適用
       let filteredData = [];
-      if (currentFilter === 'unprinted') {
+
+      if (currentFilter === 'all') {
+        filteredData = rawDataCache;
+      } else if (currentFilter === 'unprinted') {
         filteredData = rawDataCache.filter(item => item.status === '未発行');
       } else if (currentFilter === 'printed') {
         filteredData = rawDataCache.filter(item => item.status === '発行済み');
-      }
-
-      // 2. 検索キーワードフィルターの適用
-      if (searchQuery !== '') {
-        filteredData = filteredData.filter(item => {
-          const titleMatch = (item.title || '').toLowerCase().includes(searchQuery);
-          const senderMatch = (item.sender || '').toLowerCase().includes(searchQuery);
-          return titleMatch || senderMatch;
-        });
       }
 
       document.getElementById('dataCount').textContent = `(${filteredData.length}件)`;
@@ -659,6 +406,7 @@
 
       const formattedTime = item.timestamp.length >= 16 ? item.timestamp.substring(0, 16) : item.timestamp;
       
+      // ステータスバッジの決定
       const badgeHtml = isPrinted 
         ? `<span class="badge badge-printed" id="badge-${item.id}">発行済み</span>`
         : `<span class="badge badge-unprinted" id="badge-${item.id}">未発行</span>`;
@@ -689,19 +437,27 @@
         const selectedDevice = await navigator.usb.requestDevice({
           filters: [{ vendorId: SII_VENDOR_ID }]
         });
-        
-        // ★重要：ペアリング完了時、通信オープンテストはせずそのまま変数に代入するだけにする
-        usbPrinterDevice = selectedDevice;
-        const btn = document.getElementById('printerBtn');
-        btn.textContent = '✅ プリンタ接続済み';
-        btn.className = 'btn-connected';
-        document.getElementById('testPrintBtn').disabled = false;
-        
-        alert('プリンタとのペアリングが完了しました。');
+        await setupPrinter(selectedDevice);
+        alert('プリンタとの接続が完了しました。');
       } catch (error) {
         console.error('プリンタ接続エラー:', error);
         alert('プリンタの接続がキャンセルされたか、エラーが発生しました。\n' + error.message);
       }
+    }
+
+    async function setupPrinter(device) {
+      usbPrinterDevice = device;
+      await usbPrinterDevice.open();
+      if (usbPrinterDevice.configuration === null) {
+        await usbPrinterDevice.selectConfiguration(1);
+      }
+      await usbPrinterDevice.claimInterface(0);
+      await usbPrinterDevice.close(); // 一度閉じて、印刷実行時に再オープンする
+      
+      const btn = document.getElementById('printerBtn');
+      btn.textContent = '✅ プリンタ接続済み';
+      btn.className = 'btn-connected';
+      document.getElementById('testPrintBtn').disabled = false;
     }
 
     async function testPrint() {
@@ -719,7 +475,7 @@
 
     async function printReceipt(id) {
       if (!usbPrinterDevice) {
-        alert('先に「プリンタ未接続」ボタンを押して、プリンタを接続してください。');
+        alert('先に「プリンタ未接続」ボタンを押して、プリンタとペアリングしてください。');
         return;
       }
 
@@ -733,9 +489,9 @@
       printBtn.disabled = true;
       printBtn.textContent = '印刷処理中...';
 
-      const savedPasscode = localStorage.getItem('receipt_system_passcode');
-
       try {
+        // QR解像度を保ち、58mm用紙幅（実印刷幅384px）の中にバランス良く収まるよう
+        // サイズを「340px」（余白左右22pxずつ）に微調整
         const qr = new QRious({
           value: item.url,
           size: 340,
@@ -743,22 +499,23 @@
         });
         const base64Img = qr.toDataURL();
 
-        // 1. プリンタへ印刷
+        // 1. プリンタへ印刷データを送信して実行
         await executePrintProcess(item, base64Img);
         
-        // 2. GAS APIへ印刷完了を通知 (セキュリティ用のパスコードも付与して送信)
-        fetch(`${GAS_API_URL}?action=markPrinted&id=${item.id}&passcode=${encodeURIComponent(savedPasscode)}`)
+        // 2. GAS APIへ「印刷完了」を通知
+        fetch(`${GAS_API_URL}?action=markPrinted&id=${item.id}`)
           .then(res => res.json())
           .then(resData => {
             if(!resData.success) {
               console.warn('GAS側のステータス更新に失敗しました');
             } else {
+              // 成功したらキャッシュ上のステータスも「発行済み」に更新
               item.status = '発行済み';
             }
           })
           .catch(e => console.error('GAS API通信エラー:', e));
         
-        // 3. UIその場更新
+        // 3. 画面UIをその場で「発行済み」に切り替え
         cardDiv.classList.add('printed');
         printBtn.textContent = '再印刷する';
         printBtn.disabled = false;
@@ -769,9 +526,9 @@
           badge.className = 'badge badge-printed';
         }
 
-        // フィルターが掛かっている場合は1秒後にリフレッシュ
+        // 現在のフィルター条件に基づいてリストをリフレッシュ
         if (currentFilter !== 'all') {
-          setTimeout(() => { applyFilterAndRender(); }, 1000);
+          setTimeout(() => { applyFilterAndRender(); }, 1000); // 1秒後に切り替え
         }
 
       } catch (e) {
@@ -788,24 +545,33 @@
       const canvas = document.getElementById('receiptCanvas');
       const ctx = canvas.getContext('2d');
       
+      // ★58mm用紙見切れ防止の重要調整★
+      // プリンターのデバイス全体が認識する総ドット幅（80mm仕様に準拠する）
       const printerWidth = 576; 
+      // 実際に使用している58mmロール紙の実印刷幅ドット
       const paperWidth = 384; 
-      const offsetX = (printerWidth - paperWidth) / 2; // 96
+      // 58mm用紙を物理的に中央にセットしているため、描画開始点を右にずらすオフセット
+      const offsetX = (printerWidth - paperWidth) / 2; // = 96
       
-      const padding = 20;
+      const padding = 20; // 58mm用紙端からの内側マージン
       
+      // 印刷用キャンバス全体は576px幅で送信する
       canvas.width = printerWidth;
       canvas.height = 620; 
 
+      // 印刷可能領域全体を一度白（何もない状態）にする
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, printerWidth, canvas.height);
 
       ctx.fillStyle = 'black';
       ctx.textBaseline = 'top';
 
-      // ヘッダー
+      // --- 描画処理：すべて offsetX (96px) を加算して、58mm用紙幅（中央）へ描画 ---
+
+      // ヘッダー (中央揃え)
       ctx.font = 'bold 30px "Noto Sans JP", sans-serif';
       ctx.textAlign = 'center';
+      // 用紙中央（offsetX + 用紙幅の半分）
       ctx.fillText('研究データ', offsetX + (paperWidth / 2), 20);
 
       // 区切り線
@@ -815,7 +581,7 @@
       ctx.lineTo(offsetX + paperWidth - padding, 65);
       ctx.stroke();
 
-      // 情報テキスト
+      // 情報テキスト (左揃え)
       ctx.font = '20px "Noto Sans JP", sans-serif';
       ctx.textAlign = 'left';
       let currentY = 80;
@@ -831,12 +597,13 @@
       ctx.fillText(`送信日時： ${ts}`, offsetX + padding, currentY);
       currentY += 40;
 
-      // QRコードの描画
+      // QRコードの描画 (58mm幅 384px にベストフィットする 340px サイズで大きく描画)
       await new Promise((resolve) => {
         if (base64Img) {
           const img = new Image();
           img.onload = () => {
             const qrSize = 340;
+            // 58mm用紙エリアの中央にQRを配置
             const qrX = offsetX + (paperWidth - qrSize) / 2;
             ctx.drawImage(img, qrX, currentY, qrSize, qrSize);
             currentY += qrSize + 20;
@@ -851,7 +618,7 @@
         }
       });
 
-      // フッター
+      // フッター（注意事項も58mm用紙中央にセンタリング）
       ctx.font = '16px "Noto Sans JP", sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('※ノートにはセロテープで', offsetX + (paperWidth / 2), currentY);
@@ -864,7 +631,6 @@
     async function sendRasterDataToPrinter(imageData) {
       if (!usbPrinterDevice) throw new Error('プリンタがペアリングされていません');
       
-      // 印刷する瞬間にのみ接続を開く
       await usbPrinterDevice.open();
       if (usbPrinterDevice.configuration === null) {
         await usbPrinterDevice.selectConfiguration(1);
@@ -872,19 +638,18 @@
       await usbPrinterDevice.claimInterface(0);
 
       const imageCommand = convertToRasterCommand(imageData);
-      const cutCommand = [0x1D, 0x56, 0x42, 0x00]; 
+      const cutCommand = [0x1D, 0x56, 0x42, 0x00]; // カット
 
       const printData = new Uint8Array([
-          0x1B, 0x40, 
+          0x1B, 0x40, // 初期化
           ...imageCommand,
-          0x0A, 0x0A, 0x0A, 0x0A, 
+          0x0A, 0x0A, 0x0A, 0x0A, // フィード
           ...cutCommand
       ]);
 
-      const endpointNumber = 1; 
+      const endpointNumber = 1; // 書き込み用の第1エンドポイント
       await usbPrinterDevice.transferOut(endpointNumber, printData);
       
-      // 送信完了後、即座にクローズしてポートを完全に解放する
       await usbPrinterDevice.close();
     }
 
