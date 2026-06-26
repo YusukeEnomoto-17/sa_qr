@@ -132,6 +132,31 @@
       align-items: center;
     }
 
+    /* フィルタータブのスタイル */
+    .filter-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      padding: 8px 18px;
+      border: 1px solid #ccc;
+      background-color: white;
+      color: var(--text-light);
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover {
+      background-color: #f0f0f0;
+    }
+    .tab-btn.active {
+      background-color: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
     /* カードUI */
     .card-grid {
       display: grid;
@@ -147,12 +172,33 @@
       border: 1px solid #eee;
       display: flex;
       flex-direction: column;
+      position: relative;
     }
     .card-header {
       font-size: 13px;
       color: var(--text-light);
       margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
+    
+    /* カードステータスバッジ */
+    .badge {
+      font-size: 11px;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 12px;
+    }
+    .badge-unprinted {
+      background-color: #e1f5fe;
+      color: #0288d1;
+    }
+    .badge-printed {
+      background-color: #eceff1;
+      color: #546e7a;
+    }
+
     .card-title {
       font-size: 18px;
       font-weight: bold;
@@ -170,6 +216,7 @@
       content: '👤';
       margin-right: 8px;
     }
+    
     .btn-print {
       background-color: var(--accent);
       color: white;
@@ -179,29 +226,9 @@
       border-radius: 6px;
       margin-top: auto;
     }
-
-    /* 発行済みリスト（アコーディオン） */
-    .accordion-toggle {
-      background-color: #e0e0e0;
-      color: var(--text);
-      padding: 15px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      user-select: none;
-      display: flex;
-      justify-content: space-between;
-    }
-    .accordion-toggle:hover {
-      background-color: #d5d5d5;
-    }
-    #printedList {
-      display: none;
-      margin-top: 20px;
-      opacity: 0.7; /* 発行済みは少し薄く表示 */
-    }
-    #printedList .btn-print {
-      background-color: #95a5a6; /* 再印刷はグレー */
+    /* 発行済みの場合のボタン（再印刷） */
+    .card.printed .btn-print {
+      background-color: #95a5a6;
     }
 
     /* 隠しCanvas (印刷用) */
@@ -245,19 +272,19 @@
     <!-- 右パネル: データリスト -->
     <div class="right-panel">
       <h2 class="section-title">
-        未発行リスト
-        <span id="unprintedCount" style="font-size:16px; font-weight:normal; color:#7f8c8d;">(0件)</span>
+        登録データ一覧
+        <span id="dataCount" style="font-size:16px; font-weight:normal; color:#7f8c8d;">(0件)</span>
       </h2>
-      <div id="unprintedList" class="card-grid">
-        <div class="loader">データを読み込み中...</div>
+
+      <!-- フィルター用タブ -->
+      <div class="filter-tabs">
+        <button id="tab-all" class="tab-btn active" onclick="filterList('all')">すべて</button>
+        <button id="tab-unprinted" class="tab-btn" onclick="filterList('unprinted')">未発行のみ</button>
+        <button id="tab-printed" class="tab-btn" onclick="filterList('printed')">発行済みのみ</button>
       </div>
 
-      <div class="accordion-toggle" onclick="togglePrintedList()">
-        <span>発行済みリスト (この画面を開いてから発行したもの)</span>
-        <span id="accordionIcon">▼</span>
-      </div>
-      <div id="printedList" class="card-grid">
-        <!-- 印刷済みのカードがここに移動します -->
+      <div id="receiptListContainer" class="card-grid">
+        <div class="loader">データを読み込み中...</div>
       </div>
     </div>
   </div>
@@ -280,7 +307,8 @@
     const SII_VENDOR_ID = 0x0619; 
 
     let usbPrinterDevice = null;
-    let unprintedDataCache = [];
+    let rawDataCache = []; // GASから受信した全データ
+    let currentFilter = 'all'; // 現在選択されているタブ
 
     // --- 初期化 ---
     document.addEventListener('DOMContentLoaded', async () => {
@@ -312,31 +340,58 @@
     // --- データ取得・同期処理 (GAS API連携) ---
 
     async function loadData() {
-      const container = document.getElementById('unprintedList');
+      const container = document.getElementById('receiptListContainer');
       container.innerHTML = '<div class="loader">データを読み込み中...</div>';
       
       try {
         const response = await fetch(`${GAS_API_URL}?action=getUnprinted`);
         if (!response.ok) throw new Error('サーバーエラーが発生しました');
         const data = await response.json();
-        renderUnprintedList(data);
+        
+        if (data && data.status === "error") {
+          throw new Error(data.message);
+        }
+        
+        rawDataCache = data;
+        applyFilterAndRender();
       } catch (err) {
         container.innerHTML = `<div class="loader" style="color:red;">エラー: データの取得に失敗しました。<br>${err.message}</div>`;
       }
     }
 
-    function renderUnprintedList(data) {
-      unprintedDataCache = data;
-      const container = document.getElementById('unprintedList');
-      document.getElementById('unprintedCount').textContent = `(${data.length}件)`;
+    // タブの切り替え
+    function filterList(filterType) {
+      currentFilter = filterType;
       
-      if (data.length === 0) {
-        container.innerHTML = '<div class="loader">現在、未発行のデータはありません。</div>';
+      // ボタンの活性クラス切り替え
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`tab-${filterType}`).classList.add('active');
+      
+      applyFilterAndRender();
+    }
+
+    // フィルタを適用して描画
+    function applyFilterAndRender() {
+      const container = document.getElementById('receiptListContainer');
+      let filteredData = [];
+
+      if (currentFilter === 'all') {
+        filteredData = rawDataCache;
+      } else if (currentFilter === 'unprinted') {
+        filteredData = rawDataCache.filter(item => item.status === '未発行');
+      } else if (currentFilter === 'printed') {
+        filteredData = rawDataCache.filter(item => item.status === '発行済み');
+      }
+
+      document.getElementById('dataCount').textContent = `(${filteredData.length}件)`;
+
+      if (filteredData.length === 0) {
+        container.innerHTML = '<div class="loader">該当するデータはありません。</div>';
         return;
       }
 
       container.innerHTML = '';
-      data.forEach(item => {
+      filteredData.forEach(item => {
         const card = createCardElement(item);
         container.appendChild(card);
       });
@@ -344,30 +399,30 @@
 
     function createCardElement(item) {
       const div = document.createElement('div');
-      div.className = 'card';
       div.id = `card-${item.id}`;
+      
+      const isPrinted = item.status === '発行済み';
+      div.className = `card ${isPrinted ? 'printed' : ''}`;
 
       const formattedTime = item.timestamp.length >= 16 ? item.timestamp.substring(0, 16) : item.timestamp;
+      
+      // ステータスバッジの決定
+      const badgeHtml = isPrinted 
+        ? `<span class="badge badge-printed" id="badge-${item.id}">発行済み</span>`
+        : `<span class="badge badge-unprinted" id="badge-${item.id}">未発行</span>`;
 
       div.innerHTML = `
-        <div class="card-header">${formattedTime} 送信</div>
+        <div class="card-header">
+          <span>${formattedTime} 送信</span>
+          ${badgeHtml}
+        </div>
         <div class="card-title">${item.title}</div>
         <div class="card-sender">${item.sender}</div>
-        <button class="btn-print" onclick="printReceipt('${item.id}')">印刷する</button>
+        <button class="btn-print" onclick="printReceipt('${item.id}')">
+          ${isPrinted ? '再印刷する' : '印刷する'}
+        </button>
       `;
       return div;
-    }
-
-    function togglePrintedList() {
-      const list = document.getElementById('printedList');
-      const icon = document.getElementById('accordionIcon');
-      if (list.style.display === 'none' || list.style.display === '') {
-        list.style.display = 'grid';
-        icon.textContent = '▲';
-      } else {
-        list.style.display = 'none';
-        icon.textContent = '▼';
-      }
     }
 
     // --- プリンター制御 (WebUSB) ---
@@ -424,7 +479,7 @@
         return;
       }
 
-      const item = unprintedDataCache.find(d => d.id === id);
+      const item = rawDataCache.find(d => d.id === id);
       if (!item) return;
 
       const cardDiv = document.getElementById(`card-${id}`);
@@ -435,7 +490,7 @@
       printBtn.textContent = '印刷処理中...';
 
       try {
-        // 解像度を保つために生成サイズも 320 に引き上げ
+        // フロントエンド側で瞬時にQRコードをレンダリングして画像化
         const qr = new QRious({
           value: item.url,
           size: 320,
@@ -446,23 +501,33 @@
         // 1. プリンタへ印刷データを送信して実行
         await executePrintProcess(item, base64Img);
         
-        // 2. 印刷が通ったらバックグラウンドでGAS APIへ「印刷完了」を通知
+        // 2. GAS APIへ「印刷完了」を通知
         fetch(`${GAS_API_URL}?action=markPrinted&id=${item.id}`)
           .then(res => res.json())
           .then(resData => {
-            if(!resData.success) console.warn('GAS側のステータス更新に失敗しました');
+            if(!resData.success) {
+              console.warn('GAS側のステータス更新に失敗しました');
+            } else {
+              // 成功したらキャッシュ上のステータスも「発行済み」に更新
+              item.status = '発行済み';
+            }
           })
           .catch(e => console.error('GAS API通信エラー:', e));
         
-        // 3. 画面UI of更新 (未発行から発行済みへカードを移動)
+        // 3. 画面UIをその場で「発行済み」に切り替え
+        cardDiv.classList.add('printed');
         printBtn.textContent = '再印刷する';
         printBtn.disabled = false;
-        document.getElementById('printedList').prepend(cardDiv);
         
-        const currentCount = document.querySelectorAll('#unprintedList .card').length;
-        document.getElementById('unprintedCount').textContent = `(${currentCount}件)`;
-        if(currentCount === 0) {
-            document.getElementById('unprintedList').innerHTML = '<div class="loader">現在、未発行のデータはありません。</div>';
+        const badge = document.getElementById(`badge-${item.id}`);
+        if (badge) {
+          badge.textContent = '発行済み';
+          badge.className = 'badge badge-printed';
+        }
+
+        // 現在のフィルター条件に基づいてリストをリフレッシュ
+        if (currentFilter !== 'all') {
+          setTimeout(() => { applyFilterAndRender(); }, 1000); // 1秒後に切り替え
         }
 
       } catch (e) {
@@ -478,10 +543,9 @@
     async function executePrintProcess(item, base64Img = null) {
       const canvas = document.getElementById('receiptCanvas');
       const ctx = canvas.getContext('2d');
-      const width = 384; // 58mmの完全用紙ドット幅 (実印刷幅)
+      const width = 384; // 58mmの完全用紙ドット幅
       const padding = 20;
       
-      // QRコードサイズを320にしたのに伴い、全体の高さを450から620へ拡張
       canvas.width = width;
       canvas.height = 620; 
 
@@ -518,13 +582,12 @@
       ctx.fillText(`送信日時： ${ts}`, padding, currentY);
       currentY += 40;
 
-      // QRコードの描画 (サイズを縦横160pxから「320px」へ拡張)
+      // QRコードの描画
       await new Promise((resolve) => {
         if (base64Img) {
           const img = new Image();
           img.onload = () => {
             const qrSize = 320;
-            // 384px幅の中央に配置 (左右余白 32px)
             ctx.drawImage(img, (width - qrSize) / 2, currentY, qrSize, qrSize);
             currentY += qrSize + 20;
             resolve();
