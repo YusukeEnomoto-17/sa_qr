@@ -174,6 +174,7 @@
       align-items: center;
       border-right: 1px solid #ddd;
       box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+      overflow-y: auto;
     }
     .left-panel h2 {
       font-size: 20px;
@@ -188,6 +189,32 @@
       line-height: 1.6;
       color: var(--text-light);
     }
+    
+    /* トラブルシューティングのスタイル */
+    .troubleshooting {
+      margin-top: 30px;
+      padding: 15px;
+      background-color: #fff3cd;
+      border: 1px solid #ffe69c;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #664d03;
+      width: 90%;
+      box-sizing: border-box;
+    }
+    .troubleshooting strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+    .troubleshooting ul {
+      margin: 0;
+      padding-left: 20px;
+      line-height: 1.5;
+    }
+    .troubleshooting li {
+      margin-bottom: 8px;
+    }
+
     /* 右パネル (リスト) */
     .right-panel {
       flex: 1;
@@ -379,7 +406,8 @@
       </div>
     </div>
     <div class="controls">
-      <button id="printerBtn" class="btn-disconnected" onclick="connectPrinter()">⚠️ プリンタ未接続</button>
+      <!-- 「プリンタ接続」という表記で統一 -->
+      <button id="printerBtn" class="btn-disconnected" onclick="connectPrinter()">プリンタ接続</button>
       <button id="testPrintBtn" class="btn-test" onclick="testPrint()" disabled>テスト印刷</button>
       <button class="btn-refresh" onclick="loadData()">↻ リロード</button>
     </div>
@@ -395,6 +423,15 @@
         写真やスライドのURLを<br>
         このフォームから送信すると、<br>
         右側のリストに追加されます。
+      </div>
+
+      <!-- トラブルシューティングメッセージ -->
+      <div class="troubleshooting">
+        <strong>💡 トラブルシューティング</strong>
+        <ul>
+          <li>スリープから復帰したら「プリンタ接続」を押す</li>
+          <li>プリンタ接続に失敗したらPC本体からUSB-Cケーブルを一度抜いて挿し直してみてから「プリンタ接続」を押す</li>
+        </ul>
       </div>
     </div>
 
@@ -535,7 +572,7 @@
             // その後の印刷命令が Access Denied でブロックされるのを完全に防ぎます。（入試受付システムと同じ仕組みです）
             usbPrinterDevice = targetDevice;
             const btn = document.getElementById('printerBtn');
-            btn.textContent = '✅ プリンタ接続済み';
+            // 表記は「プリンタ接続」のまま、色だけ変更
             btn.className = 'btn-connected';
             document.getElementById('testPrintBtn').disabled = false;
             console.log('ペアリング履歴からプリンターを自動割り当てしました。');
@@ -694,7 +731,7 @@
         // これにより、別のタブがプリンターを開いているときと同じ「ビジー状態」になるのを確実に回避します。
         usbPrinterDevice = selectedDevice;
         const btn = document.getElementById('printerBtn');
-        btn.textContent = '✅ プリンタ接続済み';
+        // 表記は「プリンタ接続」のまま、色だけ変更
         btn.className = 'btn-connected';
         document.getElementById('testPrintBtn').disabled = false;
         
@@ -720,7 +757,7 @@
 
     async function printReceipt(id) {
       if (!usbPrinterDevice) {
-        alert('先に「プリンタ未接続」ボタンを押して、プリンタとペアリングしてください。');
+        alert('先に「プリンタ接続」ボタンを押して、プリンタとペアリングしてください。');
         return;
       }
 
